@@ -12,12 +12,20 @@ import datetime
 import github_config as gh_config
 
 def convert_github_datetime(datetime_str):
+    """function to convert the time format of Github to datetime format
+    datetime_str: string - github datetime string format to convert
+    """
+
     converted_datetime = datetime.datetime.strptime(
         datetime_str, "%Y-%m-%dT%H:%M:%SZ"
         )
     return converted_datetime
 
 def print_user_info(user_resp):
+    """function to format and print user information
+    user_resp: response object - the response on user from github API
+    """
+
     user_json = user_resp.json()
     print "login:\t" + str(user_json.get("login"))
     print "\tname:\t" + str(user_json.get("name"))
@@ -34,11 +42,20 @@ def print_user_info(user_resp):
         )
 
 def print_user_repos_info(repos_resp):
+    """function to print basic repository information
+    repos_resp: response object - the response on repository information from
+    the github API
+    """
+
     repos_json = repos_resp.json()
     # print repos_json
 
 def get_github_user_api(username, user_info):
-    """function to get the correct path to the github user's API"""
+    """function to get the correct path to the github user's API
+    username: string - the Github username to get the information from the API
+    user_info: boolean - tells the program wether or not to print user info
+    """
+    
     if user_info:
         user_resp = requests.get(
             'https://api.github.com/users/' + username, auth=gh_config.auth
@@ -54,7 +71,9 @@ def get_github_user_api(username, user_info):
     print_user_repos_info(repos_resp)
 
 def main(argv):
-    """Main part of the program"""
+    """Main part of the program
+    argv: array - all the arguments given to the program to be parsed
+    """
 
     # Parsing with argparse for the github username
     parser = argparse.ArgumentParser(
