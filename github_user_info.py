@@ -8,7 +8,34 @@ user.
 import sys
 import requests
 import argparse
+import datetime
 import github_config as gh_config
+
+def convert_github_datetime(datetime_str):
+    converted_datetime = datetime.datetime.strptime(
+        datetime_str, "%Y-%m-%dT%H:%M:%SZ"
+        )
+    return converted_datetime
+
+def print_user_info(user_resp):
+    user_json = user_resp.json()
+    print "login:\t" + str(user_json.get("login"))
+    print "\tname:\t" + str(user_json.get("name"))
+    print "\tcompany:\t" + str(user_json.get("company"))
+    print "\twebsite:\t" + str(user_json.get("blog"))
+    print "\tlocation:\t" + str(user_json.get("location"))
+    print "\temail:\t\t" + str(user_json.get("email"))
+    print "\tpublic repos:\t" + str(user_json.get("public_repos"))
+    print "\tcreated:\t" + str(
+        convert_github_datetime(user_json.get("created_at"))
+        )
+    print "\tupdated:\t" + str(
+        convert_github_datetime(user_json.get("updated_at"))
+        )
+
+def print_user_repos_info(repos_resp):
+    repos_json = repos_resp.json()
+    # print repos_json
 
 def get_github_user_api(username, user_info):
     """function to get the correct path to the github user's API"""
@@ -16,15 +43,15 @@ def get_github_user_api(username, user_info):
         user_resp = requests.get(
             'https://api.github.com/users/' + username, auth=gh_config.auth
         )
-        if user_resp.status_code == '200':
-            print user_resp
-            # print_user_info(user_resp)
+        if user_resp.status_code == 200:
+            print_user_info(user_resp)
         else:
             print "Error getting user info." + str(user_resp)
     repos_resp = requests.get(
         'https://api.github.com/users/' + username + '/repos',
         auth=gh_config.auth
     )
+    print_user_repos_info(repos_resp)
 
 def main(argv):
     """Main part of the program"""
@@ -48,8 +75,6 @@ def main(argv):
     user_info = args.user_info
 
     get_github_user_api(user, user_info)
-
-
 
 if __name__ == "__main__":
     main(sys.argv)
