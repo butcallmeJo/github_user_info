@@ -3,12 +3,19 @@
 """
 A python program/script to get user info (ie languages used) from a specific
 user.
+
+TODO List:
+    - Separate program in more files
+    - Languages
+    - More argument parsing
 """
 
 import sys
 import requests
 import argparse
 import datetime
+import threading
+import Queue
 import github_config as gh_config
 
 def convert_github_datetime(datetime_str):
@@ -48,6 +55,7 @@ def print_repo_activity(repo):
     repo: json object - individual repository information to get
     information from.
     """
+
     print "\t\tfork:\t\t" + str(repo.get("fork"))
     print "\t\tmain language:\t" + str(repo.get("language"))
     print "\t\tcreated:\t" + str(
@@ -57,18 +65,50 @@ def print_repo_activity(repo):
         convert_github_datetime(repo.get("updated_at"))
         )
 
-def print_user_repos_info(repos_resp):
+def print_user_repos_info(repos_json):
     """function to print basic repository information
     repos_resp: response object - the response on repository information from
     the github API
     """
 
-    repos_json = repos_resp.json()
     print "Repositories:"
     for repo in repos_json:
         print "\t" + str(repo.get("name"))
-        print_repo_activity(repo) # TODO
-    # print repos_json
+        print_repo_activity(repo)
+
+def get_languages_from_repo(languages, q):
+    """function to...
+    
+    """
+    url = q.get()
+    lang_resp = requests.get(url, auth=gh_config.auth)
+    lang_json = lang_resp.json()
+    for lang in lang_json:
+        if lang in languages:
+            languages[lang] += int(lang_json[lang])
+        else:
+            languages[lang] = int(lang_json[lang])
+    q.task_done()
+
+def threading_languages_from_repos(repos_json):
+    """function to get and organize all the languages for a user's repos
+    repos_resp: resp object - the resp object from the repos API request.
+    """
+    q = Queue.Queue()
+    languages = {}
+    for repo in repos_json:
+        q.put(repo.get("languages_url"))
+    for repo in repos_json:
+        t = threading.Thread(
+            target=get_languages_from_repo, args=(
+                languages, q
+                )
+            )
+        t.deamon = True
+        t.start()
+    print "test after t.start before q.join"
+    q.join()
+    print languages
 
 def get_github_user_api(username, user_info, number_repos):
     """function to get the correct path to the github user's API
@@ -84,12 +124,14 @@ def get_github_user_api(username, user_info, number_repos):
             print_user_info(user_resp)
         else:
             print "Error getting user info." + str(user_resp)
-    # if number_repos:
+    # if number_repos: # TODO
     repos_resp = requests.get(
         'https://api.github.com/users/' + username + '/repos',
         auth=gh_config.auth
     )
-    print_user_repos_info(repos_resp)
+    repos_json = repos_resp.json()
+    print_user_repos_info(repos_json)
+    threading_languages_from_repos(repos_json)
 
 def main(argv):
     """Main part of the program
