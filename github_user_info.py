@@ -18,6 +18,8 @@ import threading
 import Queue
 import github_config as gh_config
 
+LOCK = threading.Lock()
+
 def convert_github_datetime(datetime_str):
     """function to convert the time format of Github to datetime format
     datetime_str: string - github datetime string format to convert
@@ -78,22 +80,25 @@ def print_user_repos_info(repos_json):
 
 def get_languages_from_repo(languages, q):
     """function to...
-    
+    languages: dict - organize all languages for all* repos
+    q: Queue - queue to get the URL without any problem.
     """
     url = q.get()
     lang_resp = requests.get(url, auth=gh_config.auth)
     lang_json = lang_resp.json()
     for lang in lang_json:
-        if lang in languages:
-            languages[lang] += int(lang_json[lang])
-        else:
-            languages[lang] = int(lang_json[lang])
+        with LOCK:
+            if lang in languages:
+                languages[lang] += int(lang_json[lang])
+            else:
+                languages[lang] = int(lang_json[lang])
     q.task_done()
 
 def threading_languages_from_repos(repos_json):
     """function to get and organize all the languages for a user's repos
     repos_resp: resp object - the resp object from the repos API request.
     """
+
     q = Queue.Queue()
     languages = {}
     for repo in repos_json:
